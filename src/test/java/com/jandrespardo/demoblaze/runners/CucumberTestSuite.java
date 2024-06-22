@@ -1,4 +1,4 @@
-package starter;
+package com.jandrespardo.demoblaze.runners;
 
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
