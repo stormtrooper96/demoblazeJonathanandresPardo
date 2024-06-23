@@ -5,6 +5,7 @@ import com.jandrespardo.demoblaze.task.PutInformationRegistration;
 import com.jandrespardo.demoblaze.task.ValidateMessage;
 import com.jandrespardo.demoblaze.userinterfaces.PrincipalPage;
 import com.jandrespardo.demoblaze.userinterfaces.RegistrationPage;
+import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -18,28 +19,13 @@ import net.serenitybdd.screenplay.ensure.Ensure;
 import net.serenitybdd.screenplay.waits.Wait;
 import net.serenitybdd.screenplay.waits.WaitUntil;
 
+import java.util.List;
+import java.util.Map;
+
 import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isVisible;
 
 public class RegisterStepDefinitions {
 
-//    @Given("{actor} is researching things on the internet")
-//    public void researchingThings(Actor actor) {
-//        actor.wasAbleTo(NavigateTo.theSearchHomePage());
-//    }
-//
-//    @When("{actor} looks up {string}")
-//    public void searchesFor(Actor actor, String term) {
-//        actor.attemptsTo(
-//                LookForInformation.about(term)
-//        );
-//    }
-//
-//    @Then("{actor} should see information about {string}")
-//    public void should_see_information_about(Actor actor, String term) {
-//        actor.attemptsTo(
-//                Ensure.that(TheWebPage.title()).containsIgnoringCase(term)
-//        );
-//    }
 @Given("{actor} is on principal page")
 public void user_is_on_principal_page(Actor actor) {
     actor.attemptsTo(Open.url("https://www.demoblaze.com/"),

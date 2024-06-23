@@ -30,6 +30,7 @@ public class SelectCategory implements Task {
     @Override
     public <T extends Actor> void performAs(T actor) {
         actor.attemptsTo(
+                Click.on(PrincipalPage.HOME_BUTTON),
                         Click.on(PrincipalPage.CATEGORY_ITEM(categoryName))
         );
         try {
