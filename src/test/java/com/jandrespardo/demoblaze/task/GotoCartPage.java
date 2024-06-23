@@ -9,25 +9,22 @@ import net.serenitybdd.screenplay.Task;
 import net.serenitybdd.screenplay.actions.Click;
 import net.serenitybdd.screenplay.ensure.Ensure;
 import net.serenitybdd.screenplay.waits.WaitUntil;
-import org.openqa.selenium.By;
 
 import static net.serenitybdd.screenplay.Tasks.instrumented;
 import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isVisible;
 
-public class ValidateCartPage implements Task {
+public class GotoCartPage implements Task {
 
-    public static Performable validateCartPage(){
-        return instrumented(ValidateCartPage.class);
+    public static Performable on(){
+        return instrumented(GotoCartPage.class);
     }
 
     @Override
     public <T extends Actor> void performAs(T actor) {
         actor.attemptsTo(
-
                 WaitUntil.the(
-                        CartPage.TOTAL_TEXT, isVisible()).forNoMoreThan(10).seconds(),
-                Ensure.that(TotalOrderCartPage.value()).isGreaterThan(0)
-
+                        PrincipalPage.CART_BUTTON, isVisible()).forNoMoreThan(10).seconds(),
+                    Click.on(PrincipalPage.CART_BUTTON)
 
         );
 

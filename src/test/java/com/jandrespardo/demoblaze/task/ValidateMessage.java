@@ -31,7 +31,8 @@ public class ValidateMessage implements Task {
         }
         actor.attemptsTo(
 
-                Ensure.that(Switch.toAlert().getText()).isEqualTo(message)
+                Ensure.that(Switch.toAlert().getText()).isEqualTo(message),
+                Switch.toAlert().andAccept()
         );
 
     }

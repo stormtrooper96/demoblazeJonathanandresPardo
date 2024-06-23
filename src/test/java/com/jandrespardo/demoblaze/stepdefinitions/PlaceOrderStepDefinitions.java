@@ -1,8 +1,10 @@
 package com.jandrespardo.demoblaze.stepdefinitions;
 
+import com.jandrespardo.demoblaze.questions.TotalOrderCartPage;
 import com.jandrespardo.demoblaze.task.*;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import net.serenitybdd.core.Serenity;
 import net.serenitybdd.screenplay.Actor;
 
 public class PlaceOrderStepDefinitions {
@@ -21,8 +23,12 @@ public class PlaceOrderStepDefinitions {
 
     @Then("{actor} should see the products in the cart")
     public void he_should_see_the_products_in_the_cart(Actor actor) {
+        Serenity.setSessionVariable(TotalOrderCartPage.value().answeredBy(actor)).to("total");
         actor.attemptsTo(
+                GotoCartPage.on(),
                 ValidateCartPage.validateCartPage()
+
+
         );
     }
     @Then("{actor} put the buyer information")
@@ -42,7 +48,10 @@ public class PlaceOrderStepDefinitions {
     @Then("{actor} validate confirmation message")
     public void heValidateConfirmationMessage(Actor actor) {
         actor.attemptsTo(
-
+                ValidateConfirmationPage.validateConfirmation(
+                        Serenity.sessionVariableCalled("total"),
+                        Serenity.sessionVariableCalled("name"),
+                        Serenity.sessionVariableCalled("card"))
         );
     }
 }
