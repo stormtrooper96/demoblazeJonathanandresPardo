@@ -6,6 +6,15 @@ on:
   pull_request:
     branches: [ master ]
   workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser to use for testing'
+        required: true
+        default: 'chrome'
+        type: choice
+        options:
+          - chrome
+          - firefox
 
 permissions:
   contents: read
@@ -34,7 +43,7 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Build with Maven
-        run: mvn -B verify --file pom.xml -Denvironment=with_screenshots
+        run: mvn -B verify --file pom.xml -Denvironment=${{ github.event.inputs.browser }}
       - name: List files for debugging
         run: ls -la target/site/serenity
       - name: Setup Pages
