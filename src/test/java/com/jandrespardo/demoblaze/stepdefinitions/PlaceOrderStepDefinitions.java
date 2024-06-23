@@ -68,7 +68,7 @@ public class PlaceOrderStepDefinitions {
                         Serenity.sessionVariableCalled("card"))
         );
     }
-    @Given("{actor} adds multiples products with category")
+    @And("{actor} adds multiples products with category")
     public void he_adds_multiples_products_with_category(Actor actor,DataTable dataTable) {
         List<List<String>> rows = dataTable.asLists(String.class);
 
