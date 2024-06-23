@@ -3,6 +3,7 @@ package com.jandrespardo.demoblaze.task;
 import com.jandrespardo.demoblaze.questions.TotalOrderCartPage;
 import com.jandrespardo.demoblaze.userinterfaces.CartPage;
 import com.jandrespardo.demoblaze.userinterfaces.PrincipalPage;
+import net.serenitybdd.core.Serenity;
 import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Performable;
 import net.serenitybdd.screenplay.Task;
@@ -27,9 +28,9 @@ public class ValidateCartPage implements Task {
                 WaitUntil.the(
                         CartPage.TOTAL_TEXT, isVisible()).forNoMoreThan(10).seconds(),
                 Ensure.that(TotalOrderCartPage.value()).isGreaterThan(0)
-
-
         );
+
+        Serenity.setSessionVariable("total").to(TotalOrderCartPage.value().answeredBy(actor)+"");
 
 
     }

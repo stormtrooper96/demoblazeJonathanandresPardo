@@ -23,13 +23,18 @@ public class PlaceOrderStepDefinitions {
 
     @Then("{actor} should see the products in the cart")
     public void he_should_see_the_products_in_the_cart(Actor actor) {
-        Serenity.setSessionVariable(TotalOrderCartPage.value().answeredBy(actor)).to("total");
+
         actor.attemptsTo(
                 GotoCartPage.on(),
                 ValidateCartPage.validateCartPage()
 
 
         );
+
+
+
+
+
     }
     @Then("{actor} put the buyer information")
     public void he_put_the_buyer_information(Actor actor) {

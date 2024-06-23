@@ -27,8 +27,8 @@ public class EnterCustomerInformation implements Task {
     public <T extends Actor> void performAs(T actor) {
         String name=Faker.instance().friends().character();
         String card =Faker.instance().finance().creditCard();
-        Serenity.setSessionVariable(name).to("name");
-        Serenity.setSessionVariable(card).to("card");
+        Serenity.setSessionVariable("name").to(name);
+        Serenity.setSessionVariable("card").to(card);
         actor.attemptsTo(
                 WaitUntil.the(
                         CartPage.NAME_INPUT, isVisible()).forNoMoreThan(10).seconds(),

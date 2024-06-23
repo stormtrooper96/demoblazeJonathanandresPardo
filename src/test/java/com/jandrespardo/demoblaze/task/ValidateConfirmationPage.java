@@ -48,6 +48,12 @@ public class ValidateConfirmationPage implements Task {
                 String value = parts[1].trim();
 
                 switch (key) {
+                    case "Id":
+                        actor.attemptsTo(
+                                Ensure.that(value).not().isEqualTo("0")
+                        );
+                        break;
+
                     case "Name":
                         actor.attemptsTo(
                                 Ensure.that(value).isEqualTo(name)
@@ -60,8 +66,8 @@ public class ValidateConfirmationPage implements Task {
                         break;
                     case "Amount":
                         try {
-                            double amount = Double.parseDouble(value.split(" ")[0]);
-                            double totalOrder= Double.parseDouble(total);
+                            int amount = Integer.parseInt(value.split(" ")[0]);
+                            int totalOrder= Integer.parseInt(total);
                             Ensure.that(amount).isEqualTo(totalOrder);
                         } catch (NumberFormatException e) {
                             System.out.println("Error al parsear el monto: " + value);
