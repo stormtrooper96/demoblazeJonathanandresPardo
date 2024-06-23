@@ -8,20 +8,14 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import models.Product;
-import models.ProductsOrders;
+
 import net.serenitybdd.core.Serenity;
 import net.serenitybdd.screenplay.Actor;
 
 import java.util.List;
 
 public class PlaceOrderStepDefinitions {
-    private ProductsOrders productsOrders;
 
-    @Before
-public void setUp() {
-        productsOrders = new ProductsOrders();
-}
 
     @When("{actor} selects the {string} category")
     public void he_selects_the_category(Actor actor,String category) {
@@ -79,7 +73,7 @@ public void setUp() {
         List<List<String>> rows = dataTable.asLists(String.class);
 
         for (List<String> columns : rows) {
-            productsOrders.addProduct(new Product(columns.get(0), columns.get(1)));
+
             actor.attemptsTo(
                     SelectCategory.on(columns.get(0)),
                     Selectproduct.on(columns.get(1)),

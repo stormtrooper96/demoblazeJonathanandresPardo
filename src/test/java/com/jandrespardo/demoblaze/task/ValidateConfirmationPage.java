@@ -32,8 +32,7 @@ public class ValidateConfirmationPage implements Task {
     @Override
     public <T extends Actor> void performAs(T actor) {
        String textOrder= OrderConfirmationText.value().answeredBy(actor);
-        System.out.println("tex");
-        System.out.println(textOrder);
+
         String[] dataOrder = textOrder.split("\\n");
 
         actor.attemptsTo(
