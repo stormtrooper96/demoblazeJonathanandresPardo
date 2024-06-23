@@ -6,7 +6,14 @@ public class PrincipalPage {
     public static final Target CART_BUTTON = Target.the("button cart").locatedBy("//*[@id='cartur']");
     public static Target CATEGORY_ITEM(String category) {
         return Target.the("category item for " + category)
-                .locatedBy("//a[@id='itemc' and contains(@onclick, 'byCat(\"{0}\")')]")
+                .locatedBy("//a[contains(text(),'{0}')]")
                 .of(category);
     }
+    public static Target PRODUCT_NAME(String name) {
+        return Target.the("product  " + name)
+                .locatedBy("//h4[@class='card-title']/a[contains(text(),'{0}')]")
+                .of(name);
+    }
+
+
 }
