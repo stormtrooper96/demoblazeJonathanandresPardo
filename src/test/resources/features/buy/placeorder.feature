@@ -29,7 +29,7 @@ Feature: Place Order
       | Phones | Sony xperia z5 |
       | Phones | HTC One M9 |
 
-  Scenario: Place an order selecting one product
+  Scenario: Place an order selecting multiples products
     And  he adds multiples products with category
       | Laptops | Sony vaio i5 |
       | Laptops | Sony vaio i7 |
