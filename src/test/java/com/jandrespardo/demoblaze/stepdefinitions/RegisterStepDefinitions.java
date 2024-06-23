@@ -66,13 +66,9 @@ actor.attemptsTo(Click.on(RegistrationPage.SIGN_UP_BUTTON));
 
 
 
-    @Then("{actor} should see a registration {string}")
+    @Then("{actor} should see a message {string}")
     public void he_should_see_a_registration(Actor actor,String string) throws InterruptedException {
             actor.attemptsTo(ValidateMessage.compareMessages(string));
-    }
-
-    @When("{actor} leaves the username field empty")
-    public void heLeavesTheUsernameFieldEmpty(Actor actor) {
     }
 
     @And("{actor} enters a valid password")
@@ -83,9 +79,6 @@ actor.attemptsTo(Click.on(RegistrationPage.SIGN_UP_BUTTON));
         );
     }
 
-    @Then("{actor} should see an error message indicating the username is required")
-    public void heShouldSeeAnErrorMessageIndicatingTheUsernameIsRequired(Actor actor) {
-    }
 
 
 }
