@@ -1,14 +1,13 @@
-
 package com.faas.h2h_v2.screenplay.runners;
 
 import com.faas.h2h_v2.screenplay.utils.BeforeSuite;
 import com.faas.h2h_v2.screenplay.utils.SetUpEnvs;
-
 import net.serenitybdd.cucumber.CucumberWithSerenity;
 import org.junit.runner.Description;
 import org.junit.runner.Runner;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.model.InitializationError;
+import tech.tablesaw.api.Table;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -19,10 +18,16 @@ public class RunnerPersonalized extends Runner {
 
     private Class<CucumberWithSerenity> classValue;
     private CucumberWithSerenity cucumberWithSerenity;
+    private TestDataHandler testDataHandler;
 
     public RunnerPersonalized(Class<CucumberWithSerenity> classValue) throws IOException, InitializationError {
         this.classValue = classValue;
         cucumberWithSerenity = new CucumberWithSerenity(classValue);
+
+        // Inicializar TestDataHandler
+        String excelFilePath = "path/to/your/excel/file.xlsx";
+        String featureFilePath = "path/to/your/feature/file.feature";
+        testDataHandler = new TestDataHandler(excelFilePath, featureFilePath);
     }
 
     @Override
@@ -31,7 +36,7 @@ public class RunnerPersonalized extends Runner {
     }
 
     private void runAnnotatedMethods(Class<?> annotation) throws InvocationTargetException, IllegalAccessException {
-        if (!annotation.isAnnotation()){
+        if (!annotation.isAnnotation()) {
             return;
         }
 
@@ -51,161 +56,32 @@ public class RunnerPersonalized extends Runner {
     @Override
     public void run(RunNotifier notifier) {
         try {
+            // Procesar los datos antes de ejecutar las pruebas
+            testDataHandler.processTestData("Sheet1");
+
             runAnnotatedMethods(BeforeSuite.class);
             cucumberWithSerenity = new CucumberWithSerenity(classValue);
         } catch (Exception e) {
-            System.out.println("EROR runner");         
+            System.out.println("ERROR runner");
             System.out.println(e);
             try {
                 SetUpEnvs.main();
-            }
-            catch (IOException | ClassNotFoundException es) { 
+            } catch (IOException | ClassNotFoundException es) {
                 System.out.println(es);
             }
-        } 
-        cucumberWithSerenity.run(notifier); 
+        }
+        cucumberWithSerenity.run(notifier);
         try {
             SetUpEnvs.main();
-        }
-        catch (IOException | ClassNotFoundException es) { 
+        } catch (IOException | ClassNotFoundException es) {
             System.out.println(es);
-        } 
-    }
-}
-
----------------
-package com.faas.h2h_v2.screenplay;
-
-
-import com.faas.h2h_v2.screenplay.runners.RunnerPersonalized;
-import com.faas.h2h_v2.screenplay.utils.BeforeSuite;
-import com.faas.h2h_v2.screenplay.utils.SetUpEnvs;
-import io.cucumber.junit.CucumberOptions;
-import org.junit.AfterClass;
-import org.junit.runner.RunWith;
-
-import java.util.Hashtable;
-
-
-import java.io.IOException;
-
-@RunWith(RunnerPersonalized.class)
-@CucumberOptions(
-        plugin = {"pretty"},
-        features = "src/test/resources/features"
-)
-public class CucumberTestSuite {
-    private static Hashtable<String, String> features_data ;
-
-
-
-    @BeforeSuite
-    public static void setUp() throws IOException{
-        features_data = SetUpEnvs.SetEnv();
-        //System.exit(0);
-
-    }
-
-    @AfterClass
-    public static void close() throws InterruptedException, IOException
-    {
-
-        // SetUpEnvs.ResetEnv(features_data) ;
-
-
-
-    }
-}
-
-
-
-
-
-
-package com.faas.h2h_v2.screenplay.utils;
-
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface BeforeSuite {
-}
-
-
-package com.faas.h2h_v2.screenplay.runners;
-
-import com.faas.h2h_v2.screenplay.utils.BeforeSuite;
-import com.faas.h2h_v2.screenplay.utils.SetUpEnvs;
-
-import net.serenitybdd.cucumber.CucumberWithSerenity;
-import org.junit.runner.Description;
-import org.junit.runner.Runner;
-import org.junit.runner.notification.RunNotifier;
-import org.junit.runners.model.InitializationError;
-
-import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-public class RunnerPersonalized extends Runner {
-
-    private Class<CucumberWithSerenity> classValue;
-    private CucumberWithSerenity cucumberWithSerenity;
-
-    public RunnerPersonalized(Class<CucumberWithSerenity> classValue) throws IOException, InitializationError {
-        this.classValue = classValue;
-        cucumberWithSerenity = new CucumberWithSerenity(classValue);
-    }
-
-    @Override
-    public Description getDescription() {
-        return cucumberWithSerenity.getDescription();
-    }
-
-    private void runAnnotatedMethods(Class<?> annotation) throws InvocationTargetException, IllegalAccessException {
-        if (!annotation.isAnnotation()){
-            return;
         }
 
-        Method[] methods = this.classValue.getMethods();
-
-        for (Method method : methods) {
-            Annotation[] annotations = method.getAnnotations();
-            for (Annotation item : annotations) {
-                if (item.annotationType().equals(annotation)) {
-                    method.invoke(null);
-                    break;
-                }
-            }
-        }
-    }
-
-    @Override
-    public void run(RunNotifier notifier) {
+        // Restaurar el archivo después de ejecutar las pruebas
         try {
-            runAnnotatedMethods(BeforeSuite.class);
-            cucumberWithSerenity = new CucumberWithSerenity(classValue);
-        } catch (Exception e) {
-            System.out.println("EROR runner");         
-            System.out.println(e);
-            try {
-                SetUpEnvs.main();
-            }
-            catch (IOException | ClassNotFoundException es) { 
-                System.out.println(es);
-            }
-        } 
-        cucumberWithSerenity.run(notifier); 
-        try {
-            SetUpEnvs.main();
+            testDataHandler.restoreFeatureFile();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        catch (IOException | ClassNotFoundException es) { 
-            System.out.println(es);
-        } 
     }
 }
