@@ -1,3 +1,5 @@
+package org.example;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.poi.ss.usermodel.*;
@@ -10,34 +12,30 @@ import java.util.*;
 
 public class ExcelToJson {
     public static void main(String[] args) {
-        String excelFilePath = "/mnt/data/file-d2sUyabLsHAXAsygalBzwh3U";
-        List<Map<String, String>> excelData = readExcelFile(excelFilePath);
+        String excelFilePath = "D:\\UserData\\Documents\\GitHub\\maventest\\src\\main\\resources\\libroexcel.xlsx";
+        Map<String, Object> excelData = readExcelFile(excelFilePath);
         String json = convertToJson(excelData);
         System.out.println(json);
     }
 
-    private static List<Map<String, String>> readExcelFile(String filePath) {
-        List<Map<String, String>> excelData = new ArrayList<>();
-
+    private static Map<String, Object> readExcelFile(String filePath) {
+        Map<String, Object> excelData = new LinkedHashMap<>();
         try (FileInputStream fis = new FileInputStream(filePath);
              Workbook workbook = new XSSFWorkbook(fis)) {
 
             Sheet sheet = workbook.getSheetAt(0);
+
+            // Read headers
             Row headerRow = sheet.getRow(0);
-            int numCols = headerRow.getLastCellNum();
+            Row dataRow = sheet.getRow(1);
 
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-                Row row = sheet.getRow(i);
-                Map<String, String> rowData = new HashMap<>();
+            for (int cellIndex = 3; cellIndex < headerRow.getLastCellNum(); cellIndex++) {
+                String header = getCellValueAsString(headerRow.getCell(cellIndex));
+                String data = getCellValueAsString(dataRow.getCell(cellIndex));
 
-                for (int j = 0; j < numCols; j++) {
-                    Cell cell = row.getCell(j);
-                    String header = headerRow.getCell(j).getStringCellValue();
-                    String value = cell != null ? getCellValueAsString(cell) : "";
-                    rowData.put(header, value);
+                if (!header.isEmpty() && !data.isEmpty()) {
+                    excelData.put(header, data);
                 }
-
-                excelData.add(rowData);
             }
 
         } catch (FileNotFoundException e) {
@@ -50,6 +48,7 @@ public class ExcelToJson {
     }
 
     private static String getCellValueAsString(Cell cell) {
+        if (cell == null) return "";
         switch (cell.getCellType()) {
             case STRING:
                 return cell.getStringCellValue();
@@ -57,18 +56,22 @@ public class ExcelToJson {
                 if (DateUtil.isCellDateFormatted(cell)) {
                     return cell.getDateCellValue().toString();
                 } else {
-                    return Double.toString(cell.getNumericCellValue());
+                    return String.valueOf((int) cell.getNumericCellValue());
                 }
             case BOOLEAN:
                 return Boolean.toString(cell.getBooleanCellValue());
             case FORMULA:
-                return cell.getCellFormula();
+                try {
+                    return cell.getCellFormula();
+                } catch (Exception e) {
+                    return "";
+                }
             default:
                 return "";
         }
     }
 
-    private static String convertToJson(List<Map<String, String>> data) {
+    private static String convertToJson(Map<String, Object> data) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         return gson.toJson(data);
     }
