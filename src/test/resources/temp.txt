@@ -1,47 +1,75 @@
-package starter;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import io.cucumber.junit.CucumberOptions;
-import net.serenitybdd.cucumber.CucumberWithSerenity;
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.*;
 
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-
-@RunWith(CucumberTestSuite.class)
-@CucumberOptions(
-        features = "src/test/resources/features",
-        glue = "starter.stepdefinitions"
-)
-public class CucumberTestSuite extends CucumberWithSerenity {
-
-    public CucumberTestSuite(Class clazz) throws Exception {
-        super(clazz);
-        // Puedes agregar lógica adicional aquí si es necesario
+public class ExcelToJson {
+    public static void main(String[] args) {
+        String excelFilePath = "/mnt/data/file-d2sUyabLsHAXAsygalBzwh3U";
+        List<Map<String, String>> excelData = readExcelFile(excelFilePath);
+        String json = convertToJson(excelData);
+        System.out.println(json);
     }
 
-    @BeforeClass
-    public static void setup() {
-        try {
-            // Llama al método que escribe o modifica los archivos .feature
-            prepareFeatureFiles();
-        } catch (Exception e) {
+    private static List<Map<String, String>> readExcelFile(String filePath) {
+        List<Map<String, String>> excelData = new ArrayList<>();
+
+        try (FileInputStream fis = new FileInputStream(filePath);
+             Workbook workbook = new XSSFWorkbook(fis)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+            Row headerRow = sheet.getRow(0);
+            int numCols = headerRow.getLastCellNum();
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                Map<String, String> rowData = new HashMap<>();
+
+                for (int j = 0; j < numCols; j++) {
+                    Cell cell = row.getCell(j);
+                    String header = headerRow.getCell(j).getStringCellValue();
+                    String value = cell != null ? getCellValueAsString(cell) : "";
+                    rowData.put(header, value);
+                }
+
+                excelData.add(rowData);
+            }
+
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return excelData;
+    }
+
+    private static String getCellValueAsString(Cell cell) {
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return cell.getDateCellValue().toString();
+                } else {
+                    return Double.toString(cell.getNumericCellValue());
+                }
+            case BOOLEAN:
+                return Boolean.toString(cell.getBooleanCellValue());
+            case FORMULA:
+                return cell.getCellFormula();
+            default:
+                return "";
         }
     }
 
-    private static void prepareFeatureFiles() throws Exception {
-        // Lógica para escribir o modificar los archivos .feature
-        // Por ejemplo, podrías copiar un archivo temporal a la ubicación deseada
-
-        String sourcePath = "src/test/resources/features/search/search_by_keyword.feature";
-        String destinationPath = "src/test/resources/features/search/search_by_keyword.temp";
-
-        Files.copy(Paths.get(sourcePath), Paths.get(destinationPath), StandardCopyOption.REPLACE_EXISTING);
-
-        // O también puedes leer datos de un Excel y escribirlos en los archivos .feature
-        // Implementa aquí la lógica necesaria para manipular los archivos .feature
+    private static String convertToJson(List<Map<String, String>> data) {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        return gson.toJson(data);
     }
 }
