@@ -1,94 +1,189 @@
+package org.example;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Iterator;
-import org.apache.poi.ss.usermodel.*;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import java.util.*;
 
 public class ExcelToJson {
-    public static void main(String[] args) {
-        String excelFilePath = "ruta/a/tu/archivo.xlsx";
-        try {
-            JsonObject jsonObject = readExcelFile(excelFilePath);
-            String jsonString = jsonObject.toString()
-                                         .replaceAll("\\\\n|\\\\r|\\s{2,}", ""); // Eliminar saltos de línea y espacios en blanco
+    private final Map<String, Object> jsonData = new LinkedHashMap<>();
+    private final Workbook workbook;
+    private final Sheet sheet;
 
-            System.out.println(jsonString);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public ExcelToJson(String filePath) throws IOException {
+        FileInputStream file = new FileInputStream(new File(filePath));
+        this.workbook = new XSSFWorkbook(file);
+        this.sheet = workbook.getSheetAt(0);
     }
 
-    public static JsonObject readExcelFile(String excelFilePath) throws IOException {
-        FileInputStream inputStream = new FileInputStream(excelFilePath);
-        Workbook workbook = WorkbookFactory.create(inputStream);
-        Sheet sheet = workbook.getSheetAt(0);
-        Iterator<Row> iterator = sheet.iterator();
+    public void readGeneralData() {
+        Map<String, String> generalData = new LinkedHashMap<>();
+        Row headersRow = sheet.getRow(1);
+        Row valuesRow = sheet.getRow(2);
 
-        JsonObject root = new JsonObject();
+        if (headersRow == null || valuesRow == null) {
+            System.out.println("No se encontraron filas de datos generales.");
+            return;
+        }
 
-        // Leer encabezados
-        Row headerRow = iterator.next();
-        Row dataRow = iterator.next();
+        for (int i = 0; i < headersRow.getLastCellNum(); i++) {
+            Cell headerCell = headersRow.getCell(i);
+            Cell valueCell = valuesRow.getCell(i);
 
-        for (int i = 3; i < headerRow.getLastCellNum(); i++) {
-            Cell headerCell = headerRow.getCell(i);
-            Cell dataCell = dataRow.getCell(i);
-            if (headerCell != null && dataCell != null) {
-                String headerValue = headerCell.getStringCellValue();
-                String dataValue = getCellValue(dataCell);
-
-                if (headerValue.equals("unelemento")) {
-                    JsonArray unelementoArray = new JsonArray();
-                    while (iterator.hasNext()) {
-                        Row row = iterator.next();
-                        JsonObject item = new JsonObject();
-
-                        for (int j = 3; j < row.getLastCellNum(); j++) {
-                            Cell cell = row.getCell(j);
-                            if (cell != null) {
-                                String cellHeader = headerRow.getCell(j).getStringCellValue();
-                                String cellValue = getCellValue(cell);
-                                if (!cellValue.isEmpty()) {
-                                    item.addProperty(cellHeader, cellValue);
-                                }
-                            }
-                        }
-                        if (item.size() > 0) {
-                            unelementoArray.add(item);
-                        }
-                    }
-                    root.add(headerValue, unelementoArray);
-                } else {
-                    root.addProperty(headerValue, dataValue);
+            if (headerCell != null && valueCell != null) {
+                String header = headerCell.getStringCellValue().trim();
+                String value = valueCell.getStringCellValue().trim();
+                if (!header.isEmpty() && !value.isEmpty()) {
+                    generalData.put(header, value);
                 }
             }
         }
 
-        workbook.close();
-        inputStream.close();
-        return root;
+        jsonData.putAll(generalData);
     }
 
-    private static String getCellValue(Cell cell) {
-        switch (cell.getCellType()) {
-            case STRING:
-                return cell.getStringCellValue();
-            case NUMERIC:
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    return cell.getDateCellValue().toString();
-                } else {
-                    return String.valueOf(cell.getNumericCellValue());
+    private void addNestedElement(String sectionName, String arrayStartMarker, String subArrayMarker, String subArrayEndMarker, String arrayEndMarker, String terminator) {
+        Map<String, Object> nestedElementData = null;
+        List<Map<String, Object>> itemList = null;
+        List<Map<String, Object>> subArrayList = null;
+        String currentSubArrayName = null;
+        Row headerRow = null;
+        Map<Integer, String> arrayHeaders = null; // Para guardar los encabezados del array
+        boolean insideArray = false;
+        boolean insideSubArray = false;
+
+        for (int currentRowIndex = 0; currentRowIndex < sheet.getPhysicalNumberOfRows(); currentRowIndex++) {
+            Row row = sheet.getRow(currentRowIndex);
+            if (row != null && row.getCell(0) != null) {
+                String cellValue = row.getCell(0).getStringCellValue().trim();
+
+                if (sectionName.equals(cellValue)) {
+                    nestedElementData = new LinkedHashMap<>();
+                    itemList = new ArrayList<>();
+                    currentRowIndex++;
+                    headerRow = sheet.getRow(currentRowIndex);
+                    continue;
                 }
-            case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-            case FORMULA:
-                return cell.getCellFormula();
-            case BLANK:
-                return "";
-            default:
-                return "";
+
+                if (nestedElementData != null) {
+                    if (arrayStartMarker.equals(cellValue)) {
+                        insideArray = true;
+                        itemList = new ArrayList<>();
+                        arrayHeaders = new LinkedHashMap<>(); // Inicializar arrayHeaders
+                        currentRowIndex++; // Move to the header row of the array
+                        headerRow = sheet.getRow(currentRowIndex);
+                        // Guardar encabezados del primer valor del array
+                        for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+                            Cell headerCell = headerRow.getCell(i);
+                            String header = headerCell != null ? headerCell.getStringCellValue().trim() : "";
+                            if (!header.isEmpty()) {
+                                arrayHeaders.put(i, header);
+                            }
+                        }
+                        continue;
+                    }
+
+                    if (insideArray) {
+                        if (subArrayMarker.equals(cellValue)) {
+                            insideSubArray = true;
+                            currentSubArrayName = cellValue;
+                            subArrayList = new ArrayList<>();
+                            currentRowIndex++; // Move to the header row of the subarray
+                            headerRow = sheet.getRow(currentRowIndex);
+                            continue;
+                        }
+
+                        if (insideSubArray) {
+                            if (subArrayEndMarker.equals(cellValue)) {
+                                if (currentSubArrayName != null && !subArrayList.isEmpty()) {
+                                    Map<String, Object> lastItem = itemList.get(itemList.size() - 1);
+                                    lastItem.put(currentSubArrayName, subArrayList);
+                                }
+                                insideSubArray = false;
+                                continue;
+                            }
+
+                            if (!terminator.equals(cellValue)) {
+                                Map<String, Object> subItem = new LinkedHashMap<>();
+                                for (int i = 0; i < row.getLastCellNum(); i++) {
+                                    Cell headerCell = headerRow.getCell(i);
+                                    String header = headerCell != null ? headerCell.getStringCellValue().trim() : "";
+                                    Cell dataCell = row.getCell(i);
+                                    String value = dataCell != null ? dataCell.getStringCellValue().trim() : "";
+                                    if (!header.isEmpty() && !value.isEmpty() && !subArrayEndMarker.equals(value)) {
+                                        subItem.put(header, value);
+                                    }
+                                }
+                                if (!subItem.isEmpty() && !arrayEndMarker.equals(cellValue)) {
+                                    subArrayList.add(subItem);
+                                }
+                                continue;
+                            }
+                        }
+
+                        if (arrayEndMarker.equals(cellValue)) {
+                            if (!itemList.isEmpty()) {
+                                nestedElementData.put(arrayStartMarker, itemList);
+                            }
+                            insideArray = false;
+                            continue;
+                        }
+
+                        if (!terminator.equals(cellValue) && !arrayEndMarker.equals(cellValue)) {
+                            Map<String, Object> item = new LinkedHashMap<>();
+                            for (int i = 0; i < row.getLastCellNum(); i++) {
+                                // Usar arrayHeaders aquí para los elementos del array
+                                String header = arrayHeaders.get(i);
+                                Cell dataCell = row.getCell(i);
+                                String value = dataCell != null ? dataCell.getStringCellValue().trim() : "";
+                                if (header != null && !header.isEmpty() && !value.isEmpty()) {
+                                    item.put(header, value);
+                                }
+                            }
+                            if (!item.isEmpty()) {
+                                itemList.add(item);
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        if (nestedElementData != null) {
+            jsonData.put(sectionName, nestedElementData);
+        }
+    }
+
+    public String toJson() throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonData);
+    }
+
+    public static void main(String[] args) {
+        try {
+            ExcelToJson excelToJson = new ExcelToJson("D:\\UserData\\Downloads\\demoTestingData\\pruenbba.xlsx");
+
+            // Leer los datos generales
+            excelToJson.readGeneralData();
+
+            // Leer secciones específicas
+            excelToJson.addNestedElement("Seccion1", "array-prueba", "subarray-1", "FIN-SUBARRAY", "FIN-ARRAY", "END");
+            excelToJson.addNestedElement("Cornskm", "array-prueba2", "subarray-2", "FIN-SUBARRAY2", "FIN-ARRAY2", "END2");
+
+            // Convertir a JSON
+            String jsonOutput = excelToJson.toJson();
+            System.out.println(jsonOutput);
+
+            // Cerrar el workbook
+            excelToJson.workbook.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
