@@ -236,3 +236,61 @@ public class ExcelToJson {
         }
     }
 }
+
+
+-------------------
+
+   private void addElementWithPropertiesToJson(String elementName, String terminator) {
+        List<Map<String, Object>> elements = new ArrayList<>();
+        boolean readingElement = false;
+        Row headerRow = null;
+
+        for (int currentRowIndex = 0; currentRowIndex < sheet.getPhysicalNumberOfRows(); currentRowIndex++) {
+            Row row = sheet.getRow(currentRowIndex);
+            if (row != null && row.getCell(0) != null) {
+                String cellValue = row.getCell(0).getStringCellValue().trim();
+
+                // Start reading when the element name is found
+                if (elementName.equals(cellValue)) {
+                    readingElement = true;
+                    continue;
+                }
+
+                // Stop reading when the terminator is found
+                if (readingElement && terminator.equals(cellValue)) {
+                    break;
+                }
+
+                // Read headers if we are in the correct section
+                if (readingElement && headerRow == null) {
+                    headerRow = row;
+                    continue;
+                }
+
+                // Read data rows and create a map of properties
+                if (readingElement && headerRow != null) {
+                    Map<String, Object> properties = new LinkedHashMap<>();
+                    for (int i = 0; i < row.getLastCellNum(); i++) {
+                        Cell headerCell = headerRow.getCell(i);
+                        String header = headerCell != null ? headerCell.getStringCellValue().trim() : "";
+                        Cell dataCell = row.getCell(i);
+                        String value = dataCell != null ? dataCell.getStringCellValue().trim() : "";
+                        if (!header.isEmpty()) {
+                            properties.put(header, value);
+                        }
+                    }
+                    if (!properties.isEmpty()) {
+                        elements.add(properties);
+                    }
+                }
+            }
+        }
+
+        // Add the elements to jsonData
+        if (elements.size() == 1) {
+            jsonData.put(elementName, elements.get(0));
+        } else if (elements.size() > 1) {
+            jsonData.put(elementName, elements);
+        }
+    }
+
