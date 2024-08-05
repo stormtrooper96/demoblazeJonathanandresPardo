@@ -313,3 +313,55 @@ private JSONObject processMainKey(Sheet sheet, int startRow, int endRow, String 
                 return cell.toString().trim();
         }
     }}
+---
+    private void processSubArrays(Map<String, String> subArrayMappings, String key, Object value, Map<String, JSONObject> subObjects, Map<String, JSONArray> subArrays) {
+        for (String subArrayKey : subArrayMappings.keySet()) {
+            if (key != null && key.startsWith(subArrayKey)) {
+                String dynamicArrayName = subArrayMappings.get(subArrayKey);
+                JSONArray array = subArrays.computeIfAbsent(dynamicArrayName, k -> new JSONArray());
+
+                String subKey = key.replace(subArrayKey + ".", "");
+
+                if (subKey.contains(".")) {
+                    // Divide la clave en base al punto
+                    String[] parts = subKey.split("\\.", 2); // Dividir en dos partes
+
+                    if (parts.length == 2) {
+                        String itemKey = parts[0];
+                        String subItemKey = parts[1];
+
+                        // Encuentra o crea un objeto en el array para el itemKey
+                        JSONObject arrayItem = array.length() > 0 ? array.getJSONObject(array.length() - 1) : new JSONObject();
+                        if (!arrayItem.has(itemKey)) {
+                            arrayItem.put(itemKey, new JSONObject());
+                        }
+
+                        // Agrega el valor al objeto del array
+                        JSONObject itemObject = arrayItem.getJSONObject(itemKey);
+                        itemObject.put(subItemKey, value);
+
+                        if (array.length() == 0) {
+                            array.put(arrayItem);
+                        } else {
+                            array.put(arrayItem);
+                        }
+                    }
+                } else {
+                    // Si solo hay una propiedad, agrégala como un objeto completo
+                    if (array.length() == 0) {
+                        JSONObject newItem = new JSONObject();
+                        newItem.put(subKey, value);
+                        array.put(newItem);
+                    } else {
+                        JSONObject lastItem = array.getJSONObject(array.length() - 1);
+                        lastItem.put(subKey, value);
+                    }
+
+                    subArrays.put(dynamicArrayName, array);
+                }
+                return;
+            }
+        }
+    }
+
+
