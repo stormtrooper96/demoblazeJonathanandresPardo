@@ -314,54 +314,60 @@ private JSONObject processMainKey(Sheet sheet, int startRow, int endRow, String 
         }
     }}
 ---
-    private void processSubArrays(Map<String, String> subArrayMappings, String key, Object value, Map<String, JSONObject> subObjects, Map<String, JSONArray> subArrays) {
-        for (String subArrayKey : subArrayMappings.keySet()) {
-            if (key != null && key.startsWith(subArrayKey)) {
-                String dynamicArrayName = subArrayMappings.get(subArrayKey);
-                JSONArray array = subArrays.computeIfAbsent(dynamicArrayName, k -> new JSONArray());
+private void processSubArrays(Map<String, String> subArrayMappings, String key, Object value, Map<String, JSONObject> subObjects, Map<String, JSONArray> subArrays) {
+    for (String subArrayKey : subArrayMappings.keySet()) {
+        if (key != null && key.startsWith(subArrayKey)) {
+            String dynamicArrayName = subArrayMappings.get(subArrayKey);
+            JSONArray array = subArrays.computeIfAbsent(dynamicArrayName, k -> new JSONArray());
 
-                String subKey = key.replace(subArrayKey + ".", "");
+            String subKey = key.replace(subArrayKey + ".", "");
 
-                if (subKey.contains(".")) {
-                    // Divide la clave en base al punto
-                    String[] parts = subKey.split("\\.", 2); // Dividir en dos partes
+            if (subKey.contains(".")) {
+                // Divide la clave en base al punto
+                String[] parts = subKey.split("\\.", 2); // Dividir en dos partes
 
-                    if (parts.length == 2) {
-                        String itemKey = parts[0];
-                        String subItemKey = parts[1];
+                if (parts.length == 2) {
+                    String itemKey = parts[0];
+                    String subItemKey = parts[1];
 
-                        // Encuentra o crea un objeto en el array para el itemKey
-                        JSONObject arrayItem = array.length() > 0 ? array.getJSONObject(array.length() - 1) : new JSONObject();
-                        if (!arrayItem.has(itemKey)) {
-                            arrayItem.put(itemKey, new JSONObject());
-                        }
-
-                        // Agrega el valor al objeto del array
-                        JSONObject itemObject = arrayItem.getJSONObject(itemKey);
-                        itemObject.put(subItemKey, value);
-
-                        if (array.length() == 0) {
-                            array.put(arrayItem);
-                        } else {
-                            array.put(arrayItem);
-                        }
+                    // Encuentra o crea un objeto en el array para el itemKey
+                    JSONObject arrayItem = array.length() > 0 ? array.getJSONObject(array.length() - 1) : new JSONObject();
+                    if (!arrayItem.has(itemKey)) {
+                        arrayItem.put(itemKey, new JSONObject());
                     }
-                } else {
-                    // Si solo hay una propiedad, agrégala como un objeto completo
-                    if (array.length() == 0) {
-                        JSONObject newItem = new JSONObject();
-                        newItem.put(subKey, value);
-                        array.put(newItem);
+
+                    // Agrega el valor al objeto del array
+                    JSONObject itemObject = arrayItem.getJSONObject(itemKey);
+                    itemObject.put(subItemKey, value);
+
+                    // Actualiza el array con el nuevo item
+                    if (array.length() == 0 || !array.getJSONObject(array.length() - 1).has(itemKey)) {
+                        array.put(arrayItem);
                     } else {
-                        JSONObject lastItem = array.getJSONObject(array.length() - 1);
-                        lastItem.put(subKey, value);
+                        array.put(arrayItem);
                     }
-
-                    subArrays.put(dynamicArrayName, array);
                 }
-                return;
+            } else {
+                // Si solo hay una propiedad y ya hay ítems en el array, crea un nuevo ítem
+                if (array.length() > 0) {
+                    JSONObject lastItem = array.getJSONObject(array.length() - 1);
+                    lastItem.put(subKey, value);
+
+                    // Agrega un nuevo objeto al array si el ítem ya existe
+                    JSONObject newItem = new JSONObject();
+                    newItem.put(subKey, value);
+                    array.put(newItem);
+                } else {
+                    // Manejo de elementos normales dentro del subarray
+                    JSONObject newItem = new JSONObject();
+                    newItem.put(subKey, value);
+                    array.put(newItem);
+                }
+
+                subArrays.put(dynamicArrayName, array);
             }
+            return;
         }
     }
-
+}
 
