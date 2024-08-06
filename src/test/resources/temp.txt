@@ -1,310 +1,65 @@
-package org.example;
+    private void processSubArrays(Map<String, String> subArrayMappings, String key, Object value, Map<String, JSONObject> subObjects, Map<String, JSONArray> subArrays) {
+        for (String subArrayKey : subArrayMappings.keySet()) {
+            if (key != null && (key.startsWith(subArrayKey + ".") || key.startsWith(subArrayKey + "#"))) {
+                String subArrayName = subArrayMappings.get(subArrayKey);
+                String subKey = key.substring(subArrayKey.length() + 1);
 
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.json.JSONArray;
-import org.json.JSONObject;
+                // Check if the key contains "#"
+                if (subKey.startsWith("#")) {
+                    // Handle single object case
+                    String singleObjectKey = subKey.substring(1); // Remove the "#"
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+                    // Ensure that subObjects has the subArrayName initialized as a JSONObject
+                    JSONObject singleObject = subObjects.computeIfAbsent(subArrayName, k -> new JSONObject());
 
-public class ExcelToJson {
-    private Workbook workbook;
-    private Sheet sheet;
-    private JSONObject jsonObject;
+                    if (singleObjectKey.contains(".")) {
+                        // Handle subelement case within the single object
+                        String[] parts = singleObjectKey.split("\\.", 2);
+                        String parentKey = parts[0];
+                        String childKey = parts[1];
 
-    public JSONObject getJsonObject() {
-        return jsonObject;
-    }
-
-    public ExcelToJson(String filePath, String sheetname) throws IOException {
-        this.workbook = new XSSFWorkbook(new FileInputStream(filePath));
-        this.sheet = workbook.getSheet(sheetname);
-        this.jsonObject = new JSONObject();
-    }
-
-    public static void main(String[] args) {
-        try {
-            String file = "D:\\UserData\\Downloads\\MOCK_DATA.xlsx";
-            ExcelToJson excelToJson = new ExcelToJson(file, "prueba");
-            excelToJson.processArray("ABC", new String[]{"SubArray1a", "SubArray2a", "SubArra3"});
-            excelToJson.addSimpleElements("TestData");
-            excelToJson.processArray("heidy", null);
-            excelToJson.processArray("Tesr", new String[]{"prueba2", "prueba1"});
-            // Imprime el JSON resultante
-            JSONArray array = new JSONArray();
-            array.put(excelToJson.getJsonObject());
-
-            System.out.println("JSON Output: " + array.toString(4));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void processArray(String mainKeyName, String[] subarrays) {
-        Map<String, String> subArrayMappings = new HashMap<>();
-        if (subarrays != null) {
-            for (String subarray : subarrays) {
-                subArrayMappings.put(subarray, subarray);
-            }
-        }
-        try {
-             processExcelFile(mainKeyName, subArrayMappings);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void processExcelFile(String mainKeyName, Map<String, String> subArrayMappings) throws IOException {
-        int[] rowRange = findRowRangeForMainKey(sheet, mainKeyName);
-         processMainKey(sheet, rowRange[0], rowRange[1], mainKeyName, subArrayMappings);
-    }
-
-    private boolean isPartOfArray(String key, Map<String, String> subArrayMappings) {
-        for (Map.Entry<String, String> entry : subArrayMappings.entrySet()) {
-            if (key != null && key.startsWith(entry.getKey() + ".")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private int[] findRowRangeForMainKey(Sheet sheet, String mainKeyName) {
-        int startRow = findCellValue(sheet, mainKeyName) - 1;
-        int endRow = findCellValue(sheet, "END-" + mainKeyName);
-
-        if (startRow == -1) startRow = 0;
-        if (endRow == -1) endRow = sheet.getLastRowNum();
-
-        return new int[]{startRow, endRow};
-    }
-
-    private int findCellValue(Sheet sheet, String searchString) {
-        for (Row row : sheet) {
-            for (Cell cell : row) {
-                if (cell.getCellType() == CellType.STRING && cell.getStringCellValue().equals(searchString)) {
-                    return row.getRowNum();
-                }
-            }
-        }
-        return -1;
-    }
-
-//    private JSONObject processExcelData(Sheet sheet, int startRow, int endRow, String mainKeyName, Map<String, String> subArrayMappings) {
-//        return processMainKey(sheet, startRow, endRow, mainKeyName, subArrayMappings);
-//    }
-
-    private void processMainKey(Sheet sheet, int startRow, int endRow, String mainKeyName, Map<String, String> subArrayMappings) {
-        JSONObject mainObject = new JSONObject();
-        String currentMainKey = null;
-        boolean mainKeyAdded = false;
-
-        for (int i = startRow; i <= endRow; i++) {
-            Row row = sheet.getRow(i);
-            if (row == null) continue;
-
-            JSONObject sectionObject = new JSONObject();
-            Map<String, JSONObject> subObjects = new HashMap<>();
-            Map<String, JSONArray> subArrays = initializeSubArrays();
-            boolean isRowEmpty = true;
-
-            for (Cell cell : row) {
-                String key = getHeaderName(sheet, cell.getColumnIndex(), startRow);
-                Object value = getCellValue(cell);
-
-                if (isMainKeyRow(key, value, mainKeyName)) {
-                    if (!mainKeyAdded) {
-                        currentMainKey = mainKeyName;
-                        mainKeyAdded = true;
-                    }
-                    continue;
-                }
-
-                if (isEndRow(value, currentMainKey)) {
-                    currentMainKey = null;
-                    mainKeyAdded = false;
-                    break;
-                }
-
-                if (value != null && !value.toString().isBlank()) {
-                    isRowEmpty = false;
-                }
-
-                if (key != null) {
-                    if (isPartOfArray(key, subArrayMappings)) {
-                        processSubArrays(subArrayMappings, key, value, subObjects, subArrays);
+                        JSONObject parentObject = singleObject.optJSONObject(parentKey);
+                        if (parentObject == null) {
+                            parentObject = new JSONObject();
+                            singleObject.put(parentKey, parentObject);
+                        }
+                        parentObject.put(childKey, value);
                     } else {
-                        sectionObject.put(key, value);
+                        // Add the value directly to the single object
+                        singleObject.put(singleObjectKey, value);
+                    }
+                    return;
+                } else {
+                    // Handle normal array case
+                    JSONArray array = subArrays.computeIfAbsent(subArrayName, k -> new JSONArray());
+
+                    // Create or update the last JSONObject in the array
+                    JSONObject arrayItem;
+                    if (array.length() == 0 || array.getJSONObject(array.length() - 1).has(subKey)) {
+                        arrayItem = new JSONObject();
+                        array.put(arrayItem);
+                    } else {
+                        arrayItem = array.getJSONObject(array.length() - 1);
+                    }
+
+                    if (subKey.contains(".")) {
+                        // Handle subelement case
+                        String[] parts = subKey.split("\\.", 2);
+                        String parentKey = parts[0];
+                        String childKey = parts[1];
+
+                        JSONObject parentObject = arrayItem.optJSONObject(parentKey);
+                        if (parentObject == null) {
+                            parentObject = new JSONObject();
+                            arrayItem.put(parentKey, parentObject);
+                        }
+                        parentObject.put(childKey, value);
+                    } else {
+                        // Normal logic
+                        arrayItem.put(subKey, value);
                     }
                 }
-            }
-
-            if (!isRowEmpty && currentMainKey != null) {
-                addSubObjectsToSectionObject(subObjects, sectionObject);
-                addSubArraysToSectionObject(subArrays, sectionObject);
-
-
-                jsonObject.append(currentMainKey,sectionObject);
-            }
-        }
-
-
-    }
-
-
-
-    private void addSubObjectsToSectionObject(Map<String, JSONObject> subObjects, JSONObject sectionObject) {
-        for (Map.Entry<String, JSONObject> subObjectEntry : subObjects.entrySet()) {
-            sectionObject.put(subObjectEntry.getKey(), subObjectEntry.getValue());
-        }
-    }
-
-    private boolean isMainKeyRow(String key, Object value, String mainKeyName) {
-        return key != null && key.startsWith("MainKey-") && value != null && value.toString().equals(mainKeyName);
-    }
-
-    private boolean isEndRow(Object value, String currentMainKey) {
-        return value != null && currentMainKey != null && value.toString().equals("END-" + currentMainKey);
-    }
-
-    private void processSubArrays(Map<String, String> subArrayMappings, String key, Object value, Map<String, JSONObject> subObjects, Map<String, JSONArray> subArrays) {
-        for (String subArrayKey : subArrayMappings.keySet()) {
-            if (key != null && key.startsWith(subArrayKey + ".")) {
-                String subArrayName = subArrayMappings.get(subArrayKey);
-                String subKey = key.substring(subArrayKey.length() + 1);
-
-                JSONArray array = subArrays.computeIfAbsent(subArrayName, k -> new JSONArray());
-
-                // Create or update the last JSONObject in the array
-                JSONObject arrayItem;
-                if (array.length() == 0 || array.getJSONObject(array.length() - 1).has(subKey)) {
-                    arrayItem = new JSONObject();
-                    array.put(arrayItem);
-                } else {
-                    arrayItem = array.getJSONObject(array.length() - 1);
-                }
-
-                arrayItem.put(subKey, value);
-
-                // Ensure to handle cases where subArrayName might be misaligned with key
                 return;
             }
         }
     }
-
-    private Map<String, JSONArray> initializeSubArrays() {
-        return new HashMap<>();
-    }
-
-    private static void addSubArraysToSectionObject(Map<String, JSONArray> subArrays, JSONObject sectionObject) {
-        for (Map.Entry<String, JSONArray> subArrayEntry : subArrays.entrySet()) {
-            sectionObject.put(subArrayEntry.getKey(), subArrayEntry.getValue());
-        }
-    }
-
-    private static String getHeaderName(Sheet sheet, int columnIndex, int headerRowNumber) {
-        Row headerRow = sheet.getRow(headerRowNumber);
-        if (headerRow != null) {
-            Cell headerCell = headerRow.getCell(columnIndex);
-            if (headerCell != null) {
-                return headerCell.getStringCellValue();
-            }
-        }
-        return null;
-    }
-
-    private void addSimpleElements(String startRowName) {
-        int startRowIndex = -1;
-        int headerRowIndex = -1;
-
-        for (int i = 0; i <= sheet.getLastRowNum(); i++) {
-            Row row = sheet.getRow(i);
-            if (row != null) {
-                for (Cell cell : row) {
-                    if (cell.getCellType() == CellType.STRING && cell.getStringCellValue().equalsIgnoreCase(startRowName)) {
-                        startRowIndex = i;
-                        headerRowIndex = i + 1;
-                        break;
-                    }
-                }
-                if (startRowIndex != -1) {
-                    break;
-                }
-            }
-        }
-
-        if (startRowIndex != -1 && headerRowIndex <= sheet.getLastRowNum()) {
-            Row headerRow = sheet.getRow(headerRowIndex);
-            Row dataRow = sheet.getRow(headerRowIndex + 1);
-
-            if (headerRow != null && dataRow != null) {
-                for (Cell headerCell : headerRow) {
-                    String header = headerCell.getStringCellValue();
-                    Cell dataCell = dataRow.getCell(headerCell.getColumnIndex());
-                    String value = getCellValue(dataCell).toString();
-                    jsonObject.put(header, value);
-                }
-            }
-        }
-    }
-
-    private Object getCellValue(Cell cell) {
-        switch (cell.getCellType()) {
-            case STRING:
-                return cell.getStringCellValue();
-            case NUMERIC:
-                return cell.getNumericCellValue();
-            case BOOLEAN:
-                return cell.getBooleanCellValue();
-            default:
-                return null;
-        }
-    }
-}
-
-
-
-    private void processSubArrays(Map<String, String> subArrayMappings, String key, Object value, Map<String, JSONObject> subObjects, Map<String, JSONArray> subArrays) {
-        for (String subArrayKey : subArrayMappings.keySet()) {
-            if (key != null && key.startsWith(subArrayKey + ".")) {
-                String subArrayName = subArrayMappings.get(subArrayKey);
-                String subKey = key.substring(subArrayKey.length() + 1);
-
-                JSONArray array = subArrays.computeIfAbsent(subArrayName, k -> new JSONArray());
-
-                // Create or update the last JSONObject in the array
-                JSONObject arrayItem;
-                if (array.length() == 0 || array.getJSONObject(array.length() - 1).has(subKey)) {
-                    arrayItem = new JSONObject();
-                    array.put(arrayItem);
-                } else {
-                    arrayItem = array.getJSONObject(array.length() - 1);
-                }
-
-                if (subKey.contains(".")) {
-                    // Handle subelement case
-                    String[] parts = subKey.split("\\.", 2);
-                    String parentKey = parts[0];
-                    String childKey = parts[1];
-
-                    JSONObject parentObject = arrayItem.optJSONObject(parentKey);
-                    if (parentObject == null) {
-                        parentObject = new JSONObject();
-                        arrayItem.put(parentKey, parentObject);
-                    }
-                    parentObject.put(childKey, value);
-                } else {
-                    // Normal logic
-                    arrayItem.put(subKey, value);
-                }
-
-                // Ensure to handle cases where subArrayName might be misaligned with key
-                return;
-            }
-        }
-    }
-
-
