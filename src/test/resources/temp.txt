@@ -264,3 +264,63 @@ public class ExcelToJson {
         }
     }
 }
+
+
+
+private JSONObject processMainKey(Sheet sheet, int startRow, int endRow, String mainKeyName, Map<String, String> subArrayMappings) {
+    JSONObject mainObject = new JSONObject();
+    String currentMainKey = null;
+    boolean mainKeyAdded = false;
+
+    for (int i = startRow; i <= endRow; i++) {
+        Row row = sheet.getRow(i);
+        if (row == null) continue;
+
+        JSONObject sectionObject = new JSONObject();
+        Map<String, JSONObject> subObjects = new HashMap<>();
+        Map<String, JSONArray> subArrays = initializeSubArrays();
+        boolean isRowEmpty = true;
+
+        for (Cell cell : row) {
+            String key = getHeaderName(sheet, cell.getColumnIndex(), startRow);
+            Object value = getCellValue(cell);
+
+            if (isMainKeyRow(key, value, mainKeyName)) {
+                if (!mainKeyAdded) {
+                    currentMainKey = mainKeyName;
+                    mainKeyAdded = true;
+                }
+                continue;
+            }
+
+            if (isEndRow(value, currentMainKey)) {
+                currentMainKey = null;
+                mainKeyAdded = false;
+                break;
+            }
+
+            if (value != null && !value.toString().isBlank()) {
+                isRowEmpty = false;
+            }
+
+            if (key != null) {
+                if (isPartOfArray(key, subArrayMappings)) {
+                    processSubArrays(subArrayMappings, key, value, subObjects, subArrays);
+                } else {
+                    sectionObject.put(key, value);
+                }
+            }
+        }
+
+        if (!isRowEmpty && currentMainKey != null) {
+            addSubObjectsToSectionObject(subObjects, sectionObject);
+            addSubArraysToSectionObject(subArrays, sectionObject);
+            mainObject.append(currentMainKey, sectionObject); // Cambié "put" a "append"
+        }
+    }
+
+    // Verifica el contenido de mainObject
+    System.out.println("MainObject: " + mainObject.toString(4));
+    return mainObject;
+}
+
