@@ -266,3 +266,45 @@ public class ExcelToJson {
 }
 
 
+
+    private void processSubArrays(Map<String, String> subArrayMappings, String key, Object value, Map<String, JSONObject> subObjects, Map<String, JSONArray> subArrays) {
+        for (String subArrayKey : subArrayMappings.keySet()) {
+            if (key != null && key.startsWith(subArrayKey + ".")) {
+                String subArrayName = subArrayMappings.get(subArrayKey);
+                String subKey = key.substring(subArrayKey.length() + 1);
+
+                JSONArray array = subArrays.computeIfAbsent(subArrayName, k -> new JSONArray());
+
+                // Create or update the last JSONObject in the array
+                JSONObject arrayItem;
+                if (array.length() == 0 || array.getJSONObject(array.length() - 1).has(subKey)) {
+                    arrayItem = new JSONObject();
+                    array.put(arrayItem);
+                } else {
+                    arrayItem = array.getJSONObject(array.length() - 1);
+                }
+
+                if (subKey.contains(".")) {
+                    // Handle subelement case
+                    String[] parts = subKey.split("\\.", 2);
+                    String parentKey = parts[0];
+                    String childKey = parts[1];
+
+                    JSONObject parentObject = arrayItem.optJSONObject(parentKey);
+                    if (parentObject == null) {
+                        parentObject = new JSONObject();
+                        arrayItem.put(parentKey, parentObject);
+                    }
+                    parentObject.put(childKey, value);
+                } else {
+                    // Normal logic
+                    arrayItem.put(subKey, value);
+                }
+
+                // Ensure to handle cases where subArrayName might be misaligned with key
+                return;
+            }
+        }
+    }
+
+
