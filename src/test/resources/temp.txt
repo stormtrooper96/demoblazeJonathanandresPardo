@@ -324,3 +324,6 @@ private JSONObject processMainKey(Sheet sheet, int startRow, int endRow, String 
     return mainObject;
 }
 
+    private Map<String, JSONArray> initializeSubArrays() {
+        return new HashMap<>();
+    }
