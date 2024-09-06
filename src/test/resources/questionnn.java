@@ -46,3 +46,24 @@ public class ValidateJsonResponse implements Question<Boolean> {
         return new ValidateJsonResponse(key, property);
     }
 }
+
+
+
+----
+
+import static net.serenitybdd.screenplay.GivenWhenThen.seeThat;
+import static org.hamcrest.Matchers.is;
+
+public class ValidateJsonResponseTest {
+
+    @Test
+    public void shouldValidateJsonResponse() {
+        Actor user = Actor.named("User");
+
+        // Suponiendo que el actor ya realizó la solicitud HTTP
+        // Puedes usar la pregunta para validar la respuesta
+        user.should(
+            seeThat(ValidateJsonResponse.containsKeyAndProperty("clave", "otraPropiedad"), is(true))
+        );
+    }
+}
